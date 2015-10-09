@@ -6,68 +6,77 @@
 
 
 /**
+ * This tutorial demonstrates simple sending of velocity commands to the IRobot Create in Gazebo.
    Some of the code was taken from: http://guitarpenguin.is-programmer.com/posts/58100.html
    by, Harsh Patel
    Date: 07/25/2015
 
  */
-   
+
 int main(int argc, char **argv)
 {
-  srand(time(NULL));
+  /* initialize random seed: */
+  srand (time(NULL)); 
+
+  double radConverter = M_PI/180;
+  double currDeg = 0.0;
+
+
   ros::init(argc, argv, "CreateController");
 
   ros::NodeHandle n;
 
+  double sec = ros::Time::now().toSec();
+
   ros::Publisher vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 
-  ros::Rate loop_rate(1);
-  
-  int count = 0;
-  int new_angle = 0;
-  
-  // This is where the 
-  time_t start = time(0);
-  int five_x = 0;
-  float elapsed_time = 0.0;
-  // Stopped here
+  ros::Rate loop_rate(5);
+ 
+  // setting the last check time.
+  ros::Time lastChecked_5 = ros::Time::now();
+  ros::Time lastChecked_20 = ros::Time::now();
+
   while (ros::ok())
   {
+    // to write messages
     geometry_msgs::Twist cmd_vel;
 
-
-    cmd_vel.linear.x = 1;
-    cmd_vel.linear.y = 0;
-    cmd_vel.linear.z = 0;
-    
-    elapsed_time = difftime(time(0),start);
-    ROS_INFO("elapsed_time  = %f",elapsed_time);
-    if(elapsed_time == 5.0)
+    // printing to console.
+    ROS_INFO("Current time  : %f",ros::Time::now().toSec());
+    // as we cross the 5 sec mark..
+    if(ros::Time::now().toSec() - lastChecked_5.toSec() >= 5.0)
     {
-      new_angle += rand()%20;
-      cmd_vel.angular.x = 0;
-      cmd_vel.angular.y = 0;
-      cmd_vel.angular.z = new_angle;
-      ROS_INFO("Inside : elapsed_time  = %f",elapsed_time);
-      ROS_INFO("New angle: %i",new_angle);
-      elapsed_time = 0;
-      start = time(0);
-      five_x++;
-      //start = time(0);
+      // stop moving
+      cmd_vel.linear.x = 0;
+      // get a random number between 0 - 20
+      currDeg = rand() * 21.0;
+      // conver to radians
+      currDeg *= radConverter;
+      // spin
+      cmd_vel.angular.z = currDeg;
+      // reset.
+      currDeg = 0.0;
+      lastChecked_5 = ros::Time::now();   
     }
-    if(five_x == 4)
+    else if (ros::Time::now().toSec() - lastChecked_20.toSec() >= 20.0)
     {
-      cmd_vel.angular.x = 0;
-      cmd_vel.angular.y = 0;
-      // Flip it.
-      cmd_vel.angular.z = -1*new_angle;
-      new_angle = -1*new_angle;
-      five_x = 0;
-      ROS_INFO("Inside : elapsed_time  = %f",elapsed_time);
-     // ROS_INFO("New angle: %i",new_angle);
-   //   ROS_INFO("New angle: %s",cmd_vel.angular.z);
-
-      //start = time(0);
+      // stop moving
+      cmd_vel.linear.x = 0;
+      // get a random number between 0 - 45
+      currDeg = rand() * 46.0;
+      // conver to radians
+      currDeg *= radConverter;
+      // spin
+      cmd_vel.angular.z = currDeg;
+      // reset.
+      currDeg = 0.0;
+      lastChecked_20 = ros::Time::now();   
+    }
+    else
+    {
+      // keep moving straight.
+      cmd_vel.linear.x = 1;
+      cmd_vel.angular.z = 0;
     }
 
     vel_pub.publish(cmd_vel);
@@ -75,8 +84,6 @@ int main(int argc, char **argv)
     ros::spinOnce();
 
     loop_rate.sleep();
-
-    ++count;
   }
 
   return 0;

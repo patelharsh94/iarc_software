@@ -10,7 +10,6 @@
    Some of the code was taken from: http://guitarpenguin.is-programmer.com/posts/58100.html
    by, Harsh Patel
    Date: 07/25/2015
-
  */
 
 int main(int argc, char **argv)
@@ -21,6 +20,11 @@ int main(int argc, char **argv)
   double radConverter = M_PI/180;
   double currDeg = 0.0;
 
+  int noiseDir = 0;             // will be 1 if positive noise, else
+                                // negative noise, so turn direction will
+                                // change.
+  bool isFive;
+  bool isTwenty;
 
   ros::init(argc, argv, "CreateController");
 
@@ -40,43 +44,67 @@ int main(int argc, char **argv)
   {
     // to write messages
     geometry_msgs::Twist cmd_vel;
-
+    ROS_INFO("current degrees: %f",currDeg);
     // printing to console.
     ROS_INFO("Current time  : %f",ros::Time::now().toSec());
+    
     // as we cross the 5 sec mark..
     if(ros::Time::now().toSec() - lastChecked_5.toSec() >= 5.0)
     {
-      // stop moving
-      cmd_vel.linear.x = 0;
-      // get a random number between 0 - 20
-      currDeg = rand() * 21.0;
-      // conver to radians
-      currDeg *= radConverter;
-      // spin
-      cmd_vel.angular.z = currDeg;
-      // reset.
-      currDeg = 0.0;
-      lastChecked_5 = ros::Time::now();   
+      isFive = true;
     }
-    else if (ros::Time::now().toSec() - lastChecked_20.toSec() >= 20.0)
+    // if we cross the twenty second mark, only run the twenty second 
+    if(ros::Time::now().toSec() - lastChecked_20.toSec() >= 20.0)
     {
-      // stop moving
-      cmd_vel.linear.x = 0;
-      // get a random number between 0 - 45
-      currDeg = rand() * 46.0;
+      isFive = false;
+      isTwenty = true;
+    }
+    cmd_vel.linear.x = .25;
+    if(isFive)
+    {
+      // get a random number between 0 - 20
+      currDeg = rand() % 21;
+      // picks a number from 0-2
+      noiseDir = rand() % 2; 
+
+      // move counter clock wise
+      if(noiseDir < 1)
+      {
+        currDeg *= -1;
+      }
+
       // conver to radians
-      currDeg *= radConverter;
+      currDeg = currDeg * radConverter;
       // spin
-      cmd_vel.angular.z = currDeg;
+      cmd_vel.angular.z = 1;//currDeg;
+      ROS_INFO("\n\n\nFive seconds, degrees: %f\n\n\n",currDeg);
       // reset.
-      currDeg = 0.0;
-      lastChecked_20 = ros::Time::now();   
+      //currDeg = 0.0;
+      lastChecked_5 = ros::Time::now();   
+      // resetting the five sec boolean.
+      isFive = false;
+    }
+    else if (isTwenty)
+    {
+
+      // 180 deg change
+      currDeg *= -1;
+      // conver to radians
+      currDeg = currDeg * radConverter;
+      // spin
+      cmd_vel.angular.z = -1;//currDeg;
+      // reset.
+      //currDeg = 0.0;
+      ROS_INFO("\n\n\nTwenty seconds, degrees: %f\n\n\n",currDeg);
+      lastChecked_20 = ros::Time::now();  
+      // reset the counter. 
+      isTwenty = false;
     }
     else
     {
       // keep moving straight.
       cmd_vel.linear.x = 1;
-      cmd_vel.angular.z = 0;
+      //cmd_vel.angular.z = 0;
     }
 
     vel_pub.publish(cmd_vel);
